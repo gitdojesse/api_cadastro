@@ -19,14 +19,14 @@ namespace ApiCadastro.Repositories
                 return _pessoaDao.Listar();
             }
         }
-        
-        //public Pessoa? BuscarPessoaPorCpf(long cpf)
-        //{
-        //    {
-        //        return _pessoaDao.Consulte(cpf);
-        //    }
-        //}
-        
+
+        public Pessoa? BuscarPessoaPorCpf(long cpf)
+        {
+            {
+                return _pessoaDao.Consulte(cpf);
+            }
+        }
+
         //public int InserirPessoa(Pessoa pessoa)
         //{
         //    {

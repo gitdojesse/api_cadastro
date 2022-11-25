@@ -171,37 +171,37 @@ namespace ApiCadastro.Dao
             }
         }
 
-        //public Pessoa? Consulte(long cpf)
-        //{
-        //    using (SqlConnection conn = new(conexao))
-        //    {
-        //        conn.Open();
-        //        using (SqlCommand cmd = new("SELECT * FROM pessoa WHERE cpf = @cpf", conn))
-        //        {
-        //            cmd.Parameters.AddWithValue("cpf", cpf);
-        //            cmd.CommandType = System.Data.CommandType.Text;
-        //            using (SqlDataReader reader = cmd.ExecuteReader())
-        //            {
-        //                if (reader.HasRows)
-        //                {
-        //                    reader.Read();
+        public Pessoa? Consulte(long cpf)
+        {
+            using (SqlConnection conn = new(conexao))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new("SELECT * FROM pessoa WHERE cpf = @cpf", conn))
+                {
+                    cmd.Parameters.AddWithValue("cpf", cpf);
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            reader.Read();
 
-        //                    Pessoa pessoa = new();
-        //                    Endereco? endereco = this.GetEndereco(reader.GetInt32("endereco"));
-        //                    List<Telefone>? telefones = this.GetTelefoneByPessoa(reader.GetInt32("id"));
+                            Pessoa pessoa = new();
+                            Endereco? endereco = this.GetEndereco(reader.GetInt32("endereco"));
+                            List<Telefone>? telefones = this.GetTelefoneByPessoa(reader.GetInt32("id"));
 
-        //                    pessoa.SetId = reader.GetInt32("id");
-        //                    pessoa.Nome = reader.GetString("nome");
-        //                    pessoa.Cpf = reader.GetInt64("cpf");
-        //                    pessoa.Endereco = endereco;
-        //                    pessoa.telefones = telefones;
-        //                    return pessoa;
-        //                }
-        //                return null;
-        //            }
-        //        }
-        //    }
-        //}
+                            pessoa.SetId = reader.GetInt32("id");
+                            pessoa.Nome = reader.GetString("nome");
+                            pessoa.Cpf = reader.GetInt64("cpf");
+                            pessoa.Endereco = endereco;
+                            pessoa.Telefones = telefones;
+                            return pessoa;
+                        }
+                        return null;
+                    }
+                }
+            }
+        }
 
         /*
         public Pessoa BuscarPessoaPorCpf(Int64 cpf)

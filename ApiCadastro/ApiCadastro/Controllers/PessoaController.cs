@@ -23,20 +23,20 @@ namespace ApiCadastro.Controllers
             var response = JsonConvert.SerializeObject(pessoas);
             return Ok(response);
         }
-       
-        //[HttpGet("{cpf}")]
-        //public ActionResult BuscarPessoaPorCpf(long cpf)
-        //{
-        //    Pessoa? pessoa = _pessoaRepository.BuscarPessoaPorCpf(cpf);
-        //    if (pessoa != null)
-        //    {
-        //        var response = JsonConvert.SerializeObject(pessoa);
-        //        return Ok(response);
-        //    }
-        //    return NotFound("Não foi encontrada nenhuma pessoa cadastrada com o CPF informado");   
-        //}
 
-        
+        [HttpGet("{cpf}")]
+        public ActionResult BuscarPessoaPorCpf(long cpf)
+        {
+            Pessoa? pessoa = _pessoaRepository.BuscarPessoaPorCpf(cpf);
+            if (pessoa != null)
+            {
+                var response = JsonConvert.SerializeObject(pessoa);
+                return Ok(response);
+            }
+            return NotFound("Não foi encontrada nenhuma pessoa cadastrada com o CPF informado");
+        }
+
+
         //[HttpPost]
         //public ActionResult<Pessoa> InserirPessoa([FromBody] Pessoa pessoa)
         //{
