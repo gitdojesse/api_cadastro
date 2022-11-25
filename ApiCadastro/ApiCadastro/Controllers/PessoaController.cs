@@ -37,19 +37,20 @@ namespace ApiCadastro.Controllers
         }
 
 
-        //[HttpPost]
-        //public ActionResult<Pessoa> InserirPessoa([FromBody] Pessoa pessoa)
-        //{
-        //    var pessoaId = _pessoaRepository.InserirPessoa(pessoa);
-        //    if (pessoaId < 0)
-        //    {
-        //        return BadRequest("Já existe uma pessoa cadastrada com o CPF informado");
-        //    }
-        //    else
-        //    {
-        //        return Ok("Pessoa cadastrada com sucesso com o Id: " + pessoaId);
-        //    }
-        //}
+        [HttpPost]
+        public ActionResult<Pessoa> InserirPessoa([FromBody] Object post)
+        {
+            var succesInsert = _pessoaRepository.InserirPessoa(post);
+            //return Ok("Pessoa cadastrad");
+            if (!succesInsert)
+            {
+                return BadRequest("Já existe uma pessoa cadastrada com o CPF informado");
+            }
+            else
+            {
+                return Ok("Pessoa cadastrada com sucesso com o Id: " + succesInsert);
+            }
+        }
 
         /*
        [HttpDelete("{cpf}")]

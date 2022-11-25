@@ -10,7 +10,7 @@
         public string? Cidade;
         public string? Estado;
 
-        public int EnderecoId { get { return this.Id; } }
+        public int? EnderecoId { get { return this.Id; } }
         public int SetId { set { this.Id = value; } }     
         
     }

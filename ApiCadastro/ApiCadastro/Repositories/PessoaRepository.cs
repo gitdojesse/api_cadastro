@@ -27,13 +27,13 @@ namespace ApiCadastro.Repositories
             }
         }
 
-        //public int InserirPessoa(Pessoa pessoa)
-        //{
-        //    {
-        //        var pessoaId = _pessoaDao.InserirPessoa(pessoa);
-        //        return pessoaId;
-        //    }
-        //}
+        public bool InserirPessoa(Object post)
+        {
+            {               
+                var succesInsert = _pessoaDao.Insira(post);
+                return succesInsert;
+            }
+        }
 
         //public bool DeletarPessoa(Int64 cpf)
         //{
