@@ -2,6 +2,7 @@
 using ApiCadastro.Models;
 using ApiCadastro.Repositories;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Hosting;
 
 namespace ApiCadastro.Controllers
 {
@@ -59,12 +60,23 @@ namespace ApiCadastro.Controllers
             {
                 return Ok("Alteração realizada com sucesso");
             }
-            else
-            {
-
-            }
+            else           
             {
                 return BadRequest("Falha ao alterar dados");
+            }
+        }
+
+        [HttpDelete("{cpf}")]
+        public ActionResult DeletarPessoa(long cpf)
+        {
+            var successUpdate = _pessoaRepository.DeletarPessoa(cpf);
+            if (successUpdate)
+            {
+                return Ok("Exclusão realizada com sucesso");
+            }
+            else
+            {
+                return BadRequest("Falha ao excluir pessoa");
             }
         }
 

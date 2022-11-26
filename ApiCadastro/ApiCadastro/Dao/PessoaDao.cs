@@ -282,6 +282,27 @@ namespace ApiCadastro.Dao
             }
         }
 
+        public bool Exclua (long cpf)
+        {
+            using (SqlConnection conn = new(conexao))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new("DELETE FROM pessoa WHERE cpf = @cpf", conn))
+                {
+                    cmd.Parameters.AddWithValue("cpf", cpf);
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    int linhasAfetadas = cmd.ExecuteNonQuery();
+                    
+                    if (linhasAfetadas > 0)
+                    {
+                        return true;
+                    }
+                    return false;
+                    
+                }
+            }
+        }
+
         public List<Pessoa> Listar()
         {
             List<Pessoa> pessoas = new List<Pessoa>();

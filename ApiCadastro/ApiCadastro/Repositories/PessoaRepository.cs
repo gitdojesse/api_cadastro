@@ -44,12 +44,13 @@ namespace ApiCadastro.Repositories
             }
         }
 
-        //public bool DeletarPessoa(Int64 cpf)
-        //{
-        //    {
-        //        return _pessoaDao.DeletarPessoa(cpf);
-        //    }
-        //}
+        public bool DeletarPessoa(long cpf)
+        {
+            {
+                var successDelete = _pessoaDao.Exclua(cpf);
+                return successDelete;
+            }
+        }
 
     }
 }
