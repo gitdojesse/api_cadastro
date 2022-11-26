@@ -2,7 +2,7 @@
 using ApiCadastro.Models;
 using ApiCadastro.Repositories;
 using Newtonsoft.Json;
-using Microsoft.Extensions.Hosting;
+//using Microsoft.Extensions.Hosting;
 
 namespace ApiCadastro.Controllers
 {
@@ -16,15 +16,7 @@ namespace ApiCadastro.Controllers
         {
             _pessoaRepository = new PessoaRepository();
         }
-
-        [HttpGet]
-        public ActionResult<List<Pessoa>> BuscarPessoas()
-        {
-            var pessoas = _pessoaRepository.BuscarPessoas;           
-            var response = JsonConvert.SerializeObject(pessoas);
-            return Ok(response);
-        }
-
+        
         [HttpGet("{cpf}")]
         public ActionResult BuscarPessoaPorCpf(long cpf)
         {
@@ -80,28 +72,12 @@ namespace ApiCadastro.Controllers
             }
         }
 
-        /*
-       [HttpDelete("{cpf}")]
-       public ActionResult DeletarPessoa(Int64 cpf)
-       {
-           var isDeleted = _pessoaRepository.DeletarPessoa(cpf);
-           if (isDeleted)
-           {
-               return NoContent();
-           }
-           return NotFound("Não foi encontrada nenhuma pessoa cadastrada com o CPF informado");
-       }
-
-
-       [HttpPut("{cpf}")]
-       public ActionResult<Pessoa> AlterarPessoa(Int64 cpf, [FromBody] PessoaEnderecoTelefone pessoa)
-       {
-           var isChanged = _pessoaRepository.AlterarPessoa(cpf, pessoa);
-           if (isChanged)
-           {
-               return NoContent();
-           }
-           return NotFound("Não foi encontrada nenhuma pessoa cadastrada com o CPF informado");
-       }*/
+        //[HttpGet]
+        //public ActionResult<List<Pessoa>> BuscarPessoas()
+        //{
+        //    var pessoas = _pessoaRepository.BuscarPessoas;
+        //    var response = JsonConvert.SerializeObject(pessoas);
+        //    return Ok(response);
+        //}
     }
 }

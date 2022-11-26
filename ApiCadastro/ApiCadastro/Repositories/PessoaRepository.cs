@@ -1,6 +1,6 @@
 ﻿using ApiCadastro.Dao;
 using ApiCadastro.Models;
-using Microsoft.Extensions.Hosting;
+//using Microsoft.Extensions.Hosting;
 
 namespace ApiCadastro.Repositories
 {
@@ -12,15 +12,7 @@ namespace ApiCadastro.Repositories
         {
             _pessoaDao = new PessoaDao();
         }
-
-        public List<Pessoa> BuscarPessoas
-        {
-            get
-            {
-                return _pessoaDao.Listar();
-            }
-        }
-
+        
         public Pessoa? BuscarPessoaPorCpf(long cpf)
         {
             {
@@ -52,5 +44,12 @@ namespace ApiCadastro.Repositories
             }
         }
 
+        //public List<Pessoa> BuscarPessoas
+        //{
+        //    get
+        //    {
+        //        return _pessoaDao.Listar();
+        //    }
+        //}
     }
 }
