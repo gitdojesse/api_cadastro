@@ -42,13 +42,13 @@ namespace ApiCadastro.Controllers
         {
             var succesInsert = _pessoaRepository.InserirPessoa(post);
             //return Ok("Pessoa cadastrad");
-            if (!succesInsert)
+            if (succesInsert)
             {
-                return BadRequest("Já existe uma pessoa cadastrada com o CPF informado");
+                return Ok("Cadastro realizado com sucesso");
             }
             else
             {
-                return Ok("Pessoa cadastrada com sucesso com o Id: " + succesInsert);
+                return BadRequest("Falha ao cadastrar pessoa");
             }
         }
 
