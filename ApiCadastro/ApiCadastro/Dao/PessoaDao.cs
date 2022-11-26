@@ -10,7 +10,277 @@ namespace ApiCadastro.Dao
 {
     public class PessoaDao
     {
-        string conexao = "Data Source=PC-WINDOWS\\SQLEXPRESS;Initial Catalog=dbcadastro;Integrated Security=True";
+        string conexao = "Data Source=PC-WINDOWS\\SQLEXPRESS;Initial Catalog=dbcadastro;Integrated Security=True;MultipleActiveResultSets=true";
+
+        public Pessoa? Consulte(long cpf)
+        {
+            using (SqlConnection conn = new(conexao))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new("SELECT * FROM pessoa WHERE cpf = @cpf", conn))
+                {
+                    cmd.Parameters.AddWithValue("cpf", cpf);
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            reader.Read();
+
+                            Pessoa pessoa = new();
+                            Endereco? endereco = this.GetEndereco(reader.GetInt32("endereco"));
+                            List<Telefone>? telefones = this.GetTelefoneByPessoa(reader.GetInt32("id"));
+
+                            pessoa.SetId = reader.GetInt32("id");
+                            pessoa.Nome = reader.GetString("nome");
+                            pessoa.Cpf = reader.GetInt64("cpf");
+                            pessoa.Endereco = endereco;
+                            pessoa.Telefones = telefones;
+                            return pessoa;
+                        }
+                        return null;
+                    }
+                }
+            }
+        }
+
+        public bool Insira(Object post)
+        {
+            Pessoa? pessoaPost = JsonConvert.DeserializeObject<Pessoa>(post.ToString());
+            Pessoa pessoaInsert = new Pessoa();
+            Endereco enderecoInsert = new Endereco();
+            Telefone? telefoneInsert = new Telefone();
+            TipoTelefone tipoTelefoneInsert = new TipoTelefone();
+
+            using (SqlConnection conn = new SqlConnection(conexao))
+            {
+                conn.Open();
+
+                SqlCommand cmd = conn.CreateCommand();
+                SqlTransaction transaction;
+
+                transaction = conn.BeginTransaction();
+
+                cmd.Connection = conn;
+                cmd.Transaction = transaction;
+
+                try
+                {
+                    if (pessoaPost.Cpf != null)
+                    {
+                        if (this.Consulte((long)pessoaPost.Cpf) != null)
+                        {
+                            throw new Exception("CPF já cadastrado");
+                        }
+                    }
+
+                    cmd.CommandText = "INSERT INTO pessoa (Nome, Cpf, Endereco) output INSERTED.ID VALUES (@NOME, @CPFINSERT, @ENDERECOID)";
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    cmd.Parameters.AddWithValue("NOME", pessoaPost.Nome);
+                    cmd.Parameters.AddWithValue("CPFINSERT", pessoaPost.Cpf);
+
+                    if (pessoaPost.Endereco != null)
+                    {
+                        Endereco? enderecoConsulta = this.GetEnderecoByCepAndNumero(pessoaPost.Endereco.Cep, pessoaPost.Endereco.Numero);
+
+                        if (enderecoConsulta != null)
+                        {
+                            pessoaInsert.Endereco = enderecoConsulta;
+                        }
+                        else
+                        {
+                            enderecoInsert = this.InserirEndereco(pessoaPost.Endereco);
+                            pessoaInsert.Endereco = enderecoInsert;
+                        }
+                        cmd.Parameters.AddWithValue("ENDERECOID", pessoaInsert.Endereco.EnderecoId);
+                    }
+                    else
+                    {
+                        throw new Exception("Endereço não informado");
+                    }
+
+                    int lastId = (int)cmd.ExecuteScalar();
+                    pessoaInsert.SetId = lastId;
+                    transaction.Commit();
+
+                    if (pessoaPost.Telefones != null && pessoaPost.Telefones.GetType() == typeof(List<Telefone>))
+                    {
+                        foreach (Telefone telefonePost in pessoaPost.Telefones)
+                        {
+                            Telefone? telefoneConsulta = this.GetTelefone(telefonePost.Ddd, telefonePost.Numero);
+
+                            if (telefoneConsulta != null)
+                            {
+                                this.InserirPessoaTelefone(pessoaInsert, telefoneConsulta);
+                                continue;
+                            }
+
+                            if (telefonePost.Tipo != null && telefonePost.Tipo.Tipo != null)
+                            {
+                                TipoTelefone? tipoTelefoneConsulta = this.GetTelefoneTipo(telefonePost.Tipo.Tipo);
+
+                                if (tipoTelefoneConsulta != null)
+                                {
+                                    telefonePost.Tipo = tipoTelefoneConsulta;
+                                    telefoneInsert = this.InserirTelefone(telefonePost);
+                                }
+                                else
+                                {
+                                    tipoTelefoneInsert = this.InserirTipoTelefone(telefonePost.Tipo);
+                                    telefonePost.Tipo = tipoTelefoneInsert;
+                                    telefoneInsert = this.InserirTelefone(telefonePost);
+                                }
+
+                                if (telefoneInsert != null)
+                                {
+                                    this.InserirPessoaTelefone(pessoaInsert, telefoneInsert);
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Commit Exception Type: {0}", ex.GetType());
+                    Console.WriteLine("Message: {0}", ex.Message);
+
+                    try
+                    {
+                        transaction.Rollback();
+                    }
+                    catch (Exception ex2)
+                    {
+                        Console.WriteLine("Rollback Exception Type: {0}", ex2.GetType());
+                        Console.WriteLine("Message: {0}", ex2.Message);
+                    }
+                    return false;
+                }
+            }
+        }
+
+        public bool Altere(Object put)
+        {
+            Pessoa? pessoaPut = JsonConvert.DeserializeObject<Pessoa>(put.ToString());
+            Pessoa pessoaUpdate = new Pessoa();
+            Endereco enderecoInsert = new Endereco();
+            Telefone? telefoneInsert = new Telefone();
+            TipoTelefone tipoTelefoneInsert = new TipoTelefone();
+
+            using (SqlConnection conn = new SqlConnection(conexao))
+            {
+                conn.Open();
+
+                SqlCommand cmd = conn.CreateCommand();
+                SqlTransaction transaction;
+
+                transaction = conn.BeginTransaction();
+
+                cmd.Connection = conn;
+                cmd.Transaction = transaction;
+
+                try
+                {
+                    if (pessoaPut.Cpf != null)
+                    {
+                        Pessoa? pessoaConsulta = this.Consulte((long)pessoaPut.Cpf);
+
+                        if (pessoaConsulta != null)
+                        {
+                            pessoaPut.SetId = pessoaConsulta.PessoaId;
+                        }
+                        else
+                        {
+                            throw new Exception("Pessoa não cadastrado");
+                        }
+                    }
+
+                    cmd.CommandText = "UPDATE pessoa SET nome = @nome, cpf = @cpf, endereco = @endereco WHERE id = @id";
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    cmd.Parameters.AddWithValue("id", pessoaPut.PessoaId);
+                    cmd.Parameters.AddWithValue("nome", pessoaPut.Nome);
+                    cmd.Parameters.AddWithValue("cpf", pessoaPut.Cpf);
+
+                    if (pessoaPut.Endereco != null)
+                    {
+                        Endereco? enderecoConsulta = this.GetEnderecoByCepAndNumero(pessoaPut.Endereco.Cep, pessoaPut.Endereco.Numero);
+
+                        if (enderecoConsulta != null)
+                        {
+                            pessoaUpdate.Endereco = enderecoConsulta;
+                        }
+                        else
+                        {
+                            enderecoInsert = this.InserirEndereco(pessoaPut.Endereco);
+                            pessoaUpdate.Endereco = enderecoInsert;
+                        }
+                        cmd.Parameters.AddWithValue("endereco", pessoaUpdate.Endereco.EnderecoId);
+                    }
+                    else
+                    {
+                        throw new Exception("Endereço não informado");
+                    }
+
+                    cmd.ExecuteReader();                    
+                    transaction.Commit();
+
+                    this.DeletePessoaTelefone(pessoaPut);
+                    
+                    if (pessoaPut.Telefones != null && pessoaPut.Telefones.GetType() == typeof(List<Telefone>))
+                    {
+                        foreach (Telefone telefonePost in pessoaPut.Telefones)
+                        {
+                            Telefone? telefoneConsulta = this.GetTelefone(telefonePost.Ddd, telefonePost.Numero);
+
+                            if (telefoneConsulta != null)
+                            {
+                                this.InserirPessoaTelefone(pessoaPut, telefoneConsulta);
+                                continue;
+                            }
+
+                            if (telefonePost.Tipo != null && telefonePost.Tipo.Tipo != null)
+                            {
+                                TipoTelefone? tipoTelefoneConsulta = this.GetTelefoneTipo(telefonePost.Tipo.Tipo);
+
+                                if (tipoTelefoneConsulta != null)
+                                {
+                                    telefonePost.Tipo = tipoTelefoneConsulta;
+                                    telefoneInsert = this.InserirTelefone(telefonePost);
+                                }
+                                else
+                                {
+                                    tipoTelefoneInsert = this.InserirTipoTelefone(telefonePost.Tipo);
+                                    telefonePost.Tipo = tipoTelefoneInsert;
+                                    telefoneInsert = this.InserirTelefone(telefonePost);
+                                }
+
+                                if (telefoneInsert != null)
+                                {
+                                    this.InserirPessoaTelefone(pessoaPut, telefoneInsert);
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Commit Exception Type: {0}", ex.GetType());
+                    Console.WriteLine("Message: {0}", ex.Message);
+
+                    try
+                    {
+                        transaction.Rollback();
+                    }
+                    catch (Exception ex2)
+                    {
+                        Console.WriteLine("Rollback Exception Type: {0}", ex2.GetType());
+                        Console.WriteLine("Message: {0}", ex2.Message);
+                    }
+                    return false;
+                }
+            }
+        }
 
         public List<Pessoa> Listar()
         {
@@ -266,242 +536,6 @@ namespace ApiCadastro.Dao
             }
         }
 
-        public Pessoa? Consulte(long cpf)
-        {
-            using (SqlConnection conn = new(conexao))
-            {
-                conn.Open();
-                using (SqlCommand cmd = new("SELECT * FROM pessoa WHERE cpf = @cpf", conn))
-                {
-                    cmd.Parameters.AddWithValue("cpf", cpf);
-                    cmd.CommandType = System.Data.CommandType.Text;
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                        {
-                            reader.Read();
-
-                            Pessoa pessoa = new();
-                            Endereco? endereco = this.GetEndereco(reader.GetInt32("endereco"));
-                            List<Telefone>? telefones = this.GetTelefoneByPessoa(reader.GetInt32("id"));
-
-                            pessoa.SetId = reader.GetInt32("id");
-                            pessoa.Nome = reader.GetString("nome");
-                            pessoa.Cpf = reader.GetInt64("cpf");
-                            pessoa.Endereco = endereco;
-                            pessoa.Telefones = telefones;
-                            return pessoa;
-                        }
-                        return null;
-                    }
-                }
-            }
-        }
-
-        public bool Insira(Object post)
-        {            
-            Pessoa? pessoaPost = JsonConvert.DeserializeObject<Pessoa>(post.ToString());
-            Pessoa pessoaInsert = new Pessoa();
-            Endereco enderecoInsert = new Endereco();
-            Telefone? telefoneInsert = new Telefone();
-            TipoTelefone tipoTelefoneInsert = new TipoTelefone();
-
-            using (SqlConnection conn = new SqlConnection(conexao))
-            {
-                conn.Open();
-
-
-                SqlCommand cmd = conn.CreateCommand();
-                SqlTransaction transaction;
-
-                transaction = conn.BeginTransaction();
-
-                cmd.Connection = conn;
-                cmd.Transaction = transaction;
-
-                try
-                {                  
-                    if (pessoaPost.Cpf != null)
-                    {
-                        if ( this.Consulte((long)pessoaPost.Cpf) != null ){
-                            throw new Exception("CPF já cadastrado");
-                        }
-                    }
-
-                    cmd.CommandText = "INSERT INTO pessoa (Nome, Cpf, Endereco) output INSERTED.ID VALUES (@NOME, @CPFINSERT, @ENDERECOID)";
-                    cmd.CommandType = System.Data.CommandType.Text;
-                    cmd.Parameters.AddWithValue("NOME", pessoaPost.Nome);
-                    cmd.Parameters.AddWithValue("CPFINSERT", pessoaPost.Cpf);
-
-                    if (pessoaPost.Endereco != null)
-                    {
-                        Endereco? enderecoConsulta = this.GetEnderecoByCepAndNumero(pessoaPost.Endereco.Cep, pessoaPost.Endereco.Numero);
-
-                        if ( enderecoConsulta != null )                                           
-                        {
-                            pessoaInsert.Endereco = enderecoConsulta;
-                        }
-                        else
-                        {
-                            enderecoInsert = this.InserirEndereco(pessoaPost.Endereco);
-                            pessoaInsert.Endereco = enderecoInsert;
-                        }
-                        cmd.Parameters.AddWithValue("ENDERECOID", pessoaInsert.Endereco.EnderecoId);
-                    }
-                    else
-                    {
-                        throw new Exception("Endereço não informado");
-                    }
-
-                    int lastId = (int)cmd.ExecuteScalar();
-                    pessoaInsert.SetId = lastId;
-                    transaction.Commit();
-
-
-                    if (pessoaPost.Telefones != null && pessoaPost.Telefones.GetType() == typeof(List<Telefone>))
-                    {                        
-                        foreach (Telefone telefonePost in pessoaPost.Telefones)
-                        {
-                            Telefone? telefoneConsulta = this.GetTelefone(telefonePost.Ddd, telefonePost.Numero);
-
-                            if (telefoneConsulta != null)
-                            {
-                                Console.WriteLine("linha 369: " + pessoaInsert.PessoaId +"-"+ telefoneConsulta.TelefoneId);
-                                this.InserirPessoaTelefone(pessoaInsert, telefoneConsulta);
-                                continue;
-                            }
-                            else
-                            {
-                                Console.WriteLine(telefonePost.Numero + " telefoneConsulta não existe");
-                                if (telefonePost.Tipo != null && telefonePost.Tipo.Tipo != null)
-                                {
-                                    TipoTelefone? tipoTelefoneConsulta = this.GetTelefoneTipo(telefonePost.Tipo.Tipo);
-
-                                    if (tipoTelefoneConsulta != null)
-                                    {
-                                        Console.WriteLine("tipoTelefoneConsulta tem");
-                                        telefonePost.Tipo = tipoTelefoneConsulta;
-                                        telefoneInsert = this.InserirTelefone(telefonePost);
-                                        //this.InserirPessoaTelefone(pessoaInsert, telefoneInsert);
-                                        //continue;
-                                    }
-                                    else
-                                    {
-                                        tipoTelefoneInsert = this.InserirTipoTelefone(telefonePost.Tipo);                                                                              
-                                        telefonePost.Tipo = tipoTelefoneInsert;
-                                        telefoneInsert = this.InserirTelefone(telefonePost);
-
-                                        //if (telefoneInsert != null)
-                                        //{
-                                        //    this.InserirPessoaTelefone(pessoaInsert, telefoneInsert);
-                                        //}                                        
-                                    }
-
-                                    if (telefoneInsert != null)
-                                    {
-                                        Console.WriteLine("linha 405: " + pessoaInsert.PessoaId + "-" + telefoneInsert.TelefoneId);
-                                        this.InserirPessoaTelefone(pessoaInsert, telefoneInsert);
-                                    }
-                                }
-                            }
-                        }
-
-                        //throw new Exception("Testes");
-                    }
-
-                    //transaction.Commit();
-                    return true;
-
-                    /*
-                    cmd.CommandText = "SELECT * FROM tb_tipos_telefone WHERE Tipo = @TIPOTELEFONE";
-                    cmd.Parameters.AddWithValue("TIPOTELEFONE", pessoa.TipoTelefone);
-                    SqlDataReader reader = cmd.ExecuteReader();
-
-                    if (reader != null)
-                    {
-                        while (reader.Read())
-                        {
-                            tipoTelefoneId = (int)reader["Id"];
-                        }
-                        reader.Close();
-                        reader.Dispose();
-                    }
-
-                    if (tipoTelefoneId == -1)
-                    {
-                        cmd.CommandText = "INSERT INTO tb_tipos_telefone (Tipo) output INSERTED.ID VALUES (@TIPOTELEFONEINSERT)";
-                        cmd.Parameters.AddWithValue("TIPOTELEFONEINSERT", pessoa.TipoTelefone);
-                        tipoTelefoneId = (int)cmd.ExecuteScalar();
-                    }
-
-                    cmd.CommandText = "SELECT * FROM tb_telefones WHERE Numero = @NUMEROTELEFONE AND Ddd = @DDD";
-                    cmd.Parameters.AddWithValue("NUMEROTELEFONE", pessoa.NumeroTelefone);
-                    cmd.Parameters.AddWithValue("DDD", pessoa.Ddd);
-                    SqlDataReader readerTelefone = cmd.ExecuteReader();
-
-                    if (readerTelefone != null)
-                    {
-                        while (readerTelefone.Read())
-                        {
-                            telefoneId = (int)readerTelefone["Id"];
-                        }
-                        readerTelefone.Close();
-                        readerTelefone.Dispose();
-                    }
-
-                    if (telefoneId == -1)
-                    {
-                        cmd.CommandText = "INSERT INTO tb_telefones (Numero, Ddd, TipoTelefoneId) output INSERTED.ID VALUES (@NUMEROTELEFONEINSERT, @DDDINSERT, @TIPOTELEFONEID)";
-                        cmd.Parameters.AddWithValue("NUMEROTELEFONEINSERT", pessoa.NumeroTelefone);
-                        cmd.Parameters.AddWithValue("DDDINSERT", pessoa.Ddd);
-                        cmd.Parameters.AddWithValue("TIPOTELEFONEID", tipoTelefoneId);
-                        telefoneId = (int)cmd.ExecuteScalar();
-                    }
-
-                    cmd.CommandText = "INSERT INTO tb_enderecos (Logradouro, Numero, Cep, Bairro, Cidade, Estado) output INSERTED.ID VALUES (@LOGRADOURO, @NUMERO, @CEP, @BAIRRO, @CIDADE, @ESTADO)";
-                    cmd.Parameters.AddWithValue("LOGRADOURO", pessoa.Logradouro);
-                    cmd.Parameters.AddWithValue("NUMERO", pessoa.Numero);
-                    cmd.Parameters.AddWithValue("CEP", pessoa.Cep);
-                    cmd.Parameters.AddWithValue("BAIRRO", pessoa.Bairro);
-                    cmd.Parameters.AddWithValue("CIDADE", pessoa.Cidade);
-                    cmd.Parameters.AddWithValue("ESTADO", pessoa.Estado);
-                    enderecoId = (int)cmd.ExecuteScalar();
-
-                    cmd.CommandText = "INSERT INTO tb_pessoas (Nome, Cpf, EnderecoId) output INSERTED.ID VALUES (@NOME, @CPFINSERT, @ENDERECOID)";
-                    cmd.CommandType = System.Data.CommandType.Text;
-                    cmd.Parameters.AddWithValue("NOME", pessoa.Nome);
-                    cmd.Parameters.AddWithValue("CPFINSERT", pessoa.Cpf);
-                    cmd.Parameters.AddWithValue("ENDERECOID", enderecoId);
-                    pessoaId = (int)cmd.ExecuteScalar();
-
-                    cmd.CommandText = "INSERT INTO tb_pessoa_telefone (PessoaId, TelefoneId) VALUES (@PESSOAID, @TELEFONEID)";
-                    cmd.Parameters.AddWithValue("PESSOAID", pessoaId);
-                    cmd.Parameters.AddWithValue("TELEFONEID", telefoneId);
-                    cmd.ExecuteScalar();
-
-                    transaction.Commit();
-                    return pessoaId; */
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Commit Exception Type: {0}", ex.GetType());
-                    Console.WriteLine("Message: {0}", ex.Message);
-
-                    try
-                    {
-                        transaction.Rollback();
-                    }
-                    catch (Exception ex2)
-                    {
-                        Console.WriteLine("Rollback Exception Type: {0}", ex2.GetType());
-                        Console.WriteLine("Message: {0}", ex2.Message);
-                    }
-                    return false;
-                }
-
-            }               
-        }
-
         private Endereco InserirEndereco(Endereco endereco)
         {
             using (SqlConnection conn = new SqlConnection(conexao))
@@ -578,6 +612,21 @@ namespace ApiCadastro.Dao
                 cmd.CommandText = "INSERT INTO pessoa_telefone (id_pessoa, id_telefone) output INSERTED.* VALUES (@id_pessoa, @id_telefone)";
                 cmd.Parameters.AddWithValue("id_pessoa", pessoa.PessoaId);
                 cmd.Parameters.AddWithValue("id_telefone", telefone.TelefoneId);
+                cmd.ExecuteReader();
+
+                conn.Close();
+            }
+        }
+
+        private void DeletePessoaTelefone(Pessoa pessoa)
+        {
+            using (SqlConnection conn = new SqlConnection(conexao))
+            {
+                conn.Open();
+                SqlCommand cmd = conn.CreateCommand();
+
+                cmd.CommandText = "DELETE FROM pessoa_telefone WHERE id_pessoa = @id_pessoa";
+                cmd.Parameters.AddWithValue("id_pessoa", pessoa.PessoaId);
                 cmd.ExecuteReader();
 
                 conn.Close();

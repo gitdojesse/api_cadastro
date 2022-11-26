@@ -41,7 +41,6 @@ namespace ApiCadastro.Controllers
         public ActionResult<Pessoa> InserirPessoa([FromBody] Object post)
         {
             var succesInsert = _pessoaRepository.InserirPessoa(post);
-            //return Ok("Pessoa cadastrad");
             if (succesInsert)
             {
                 return Ok("Cadastro realizado com sucesso");
@@ -49,6 +48,23 @@ namespace ApiCadastro.Controllers
             else
             {
                 return BadRequest("Falha ao cadastrar pessoa");
+            }
+        }
+
+        [HttpPut("{cpf}")]
+        public ActionResult<Pessoa> AlterarPessoa([FromBody] Object post)
+        {
+            var successUpdate = _pessoaRepository.AlterarPessoa(post);
+            if (successUpdate)
+            {
+                return Ok("Alteração realizada com sucesso");
+            }
+            else
+            {
+
+            }
+            {
+                return BadRequest("Falha ao alterar dados");
             }
         }
 

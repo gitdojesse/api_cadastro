@@ -1,5 +1,6 @@
 ﻿using ApiCadastro.Dao;
 using ApiCadastro.Models;
+using Microsoft.Extensions.Hosting;
 
 namespace ApiCadastro.Repositories
 {
@@ -35,6 +36,14 @@ namespace ApiCadastro.Repositories
             }
         }
 
+        public bool AlterarPessoa(Object put)
+        {
+            {
+                var successUpdate = _pessoaDao.Altere(put);
+                return successUpdate;
+            }
+        }
+
         //public bool DeletarPessoa(Int64 cpf)
         //{
         //    {
@@ -42,11 +51,5 @@ namespace ApiCadastro.Repositories
         //    }
         //}
 
-        //public bool AlterarPessoa(Int64 cpf, PessoaEnderecoTelefone pessoa)
-        //{
-        //    {
-        //        return _pessoaDao.AlterarPessoa(cpf, pessoa);
-        //    }
-        //}
     }
 }
